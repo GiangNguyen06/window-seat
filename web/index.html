@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Window Seat — what can you see from your airplane window?</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="app">
+      <header>
+        <div class="brand">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M7 15 Q12 11 17 15 L17 17 Q12 21 7 17 Z" fill="currentColor" opacity=".55"/></svg>
+          <span>Window Seat</span>
+        </div>
+        <div id="flight-title" class="flight-title">—</div>
+        <div class="seg" id="mode">
+          <button data-mode="map" class="active">Map</button>
+          <button data-mode="3d">Window view 3D</button>
+        </div>
+        <button id="new-flight" class="file-btn">＋ New flight</button>
+      </header>
+
+      <main>
+        <div id="stage">
+          <div id="map"></div>
+          <div id="view3d" hidden>
+            <div class="v3d-bar">
+              <div class="seg" id="v3d-side">
+                <button data-side="left">Left window</button>
+                <button data-side="right">Right window</button>
+              </div>
+              <span id="v3d-info" class="v3d-info">Loading 3D globe…</span>
+              <button id="v3d-token" class="link">Cesium token…</button>
+            </div>
+            <div class="cabin">
+              <div class="porthole" id="porthole">
+                <div id="cesium"></div>
+                <div class="pane-glare"></div>
+              </div>
+            </div>
+            <div class="v3d-hint">Drag to look around · scroll to lean in or out · double-click to reset</div>
+          </div>
+        </div>
+
+        <aside id="panel">
+          <section class="settings" id="settings">
+            <div class="set-head">
+              <h3>View settings</h3>
+              <div class="seg small" id="set-mode">
+                <button data-m="simple">Simple</button>
+                <button data-m="detailed">My seat</button>
+              </div>
+            </div>
+            <p class="set-simple-note" id="set-simple-note">Comparing the left and right window seats. Choose <b>My seat</b> for results specific to your seat.</p>
+            <div id="set-detailed" hidden>
+              <label class="field"><span>Aircraft</span><select id="set-aircraft"></select></label>
+              <div class="field"><span>Seat</span>
+                <div class="seatpick">
+                  <input id="set-row" type="number" min="1" max="99" value="20" aria-label="Row" />
+                  <div id="set-letters" class="letters"></div>
+                </div>
+              </div>
+              <div class="seat-note" id="seat-note"></div>
+              <label class="field"><span>Lean</span>
+                <input id="set-lean" type="range" min="12" max="60" step="1" value="35" />
+                <em id="set-lean-v"></em>
+              </label>
+            </div>
+            <div class="field-row">
+              <label class="field"><span>Air</span>
+                <select id="set-haze">
+                  <option value="250">Very clear</option>
+                  <option value="150" selected>Normal</option>
+                  <option value="60">Hazy</option>
+                </select>
+              </label>
+              <label class="check"><input type="checkbox" id="set-terrain" /> Real terrain <small>(slower)</small></label>
+            </div>
+            <button id="set-apply" class="primary">Update view</button>
+          </section>
+
+          <section class="windows">
+            <div class="win-col" data-side="left">
+              <div class="win-head"><span class="side-tag left">LEFT</span><span class="seat" id="seat-left"></span></div>
+              <canvas class="win" id="win-left"></canvas>
+            </div>
+            <div class="win-col" data-side="right">
+              <div class="win-head"><span class="side-tag right">RIGHT</span><span class="seat" id="seat-right"></span></div>
+              <canvas class="win" id="win-right"></canvas>
+            </div>
+          </section>
+
+          <section class="stats" id="stats"></section>
+
+          <section class="now">
+            <h3>In view now</h3>
+            <div class="now-cols">
+              <ul id="now-left" class="now-list"></ul>
+              <ul id="now-right" class="now-list"></ul>
+            </div>
+          </section>
+
+          <section class="verdict" id="verdict"></section>
+
+          <section class="whole">
+            <div class="tabs">
+              <button data-tab="left">Left side</button>
+              <button data-tab="right">Right side</button>
+            </div>
+            <ol id="whole-list"></ol>
+          </section>
+        </aside>
+      </main>
+
+      <footer>
+        <button id="play" aria-label="Play">▶</button>
+        <select id="speed" aria-label="Playback speed">
+          <option value="30">30×</option>
+          <option value="60" selected>60×</option>
+          <option value="180">180×</option>
+          <option value="600">600×</option>
+        </select>
+        <div class="timeline">
+          <svg id="profile" preserveAspectRatio="none"></svg>
+          <input id="slider" type="range" min="0" max="0" value="0" />
+        </div>
+        <div id="clock" class="clock">--:--</div>
+      </footer>
+    </div>
+    <div id="drop" class="drop">Drop your Flightradar24 <code>.kml</code> or <code>.csv</code> file</div>
+
+    <div id="busy" class="busy" hidden>
+      <div class="busy-card"><div id="busy-text">Calculating the view…</div><div class="bar"><i id="busy-bar"></i></div></div>
+    </div>
+
+    <div id="welcome" class="welcome">
+      <div class="welcome-card">
+        <button id="welcome-close" class="close" aria-label="Close" hidden>×</button>
+        <h1>What could you see from your window?</h1>
+        <p class="lead">Drop in a flight from Flightradar24. Window Seat works out the plane's tilt in turns, the earth's curve,
+          haze and the sun, then shows what you could see from each side: cities, mountains, lakes, sunrise.</p>
+        <label class="dropzone" id="dropzone">
+          <input id="file" type="file" accept=".kml,.csv,.json" hidden />
+          <strong>Drop a KML or CSV file here</strong>
+          <span>or click to choose a file</span>
+        </label>
+        <div class="welcome-actions">
+          <button id="try-demo" class="primary">Try a demo flight: Amsterdam → Rome over the Alps</button>
+        </div>
+        <details class="howto">
+          <summary>How do I get the file?</summary>
+          <ol>
+            <li>Log in on <a href="https://www.flightradar24.com" target="_blank" rel="noopener">flightradar24.com</a> (downloads need a paid plan).</li>
+            <li>Search your flight number, e.g. <code>VN82</code>, and open its history page.</li>
+            <li>Next to the flight you took, click <b>KML</b> (best: includes airline, route and aircraft) or <b>CSV</b>.</li>
+            <li>Drop that file above.</li>
+          </ol>
+        </details>
+        <div id="recent" class="recent" hidden>
+          <h3>Your flights</h3>
+          <ul id="recent-list"></ul>
+        </div>
+        <p class="privacy">Your files never leave your browser. Everything is calculated on your device.</p>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

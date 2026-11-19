@@ -1,0 +1,130 @@
+name,kind,lat,lon,elevation_m,prominence,range
+Mount Everest,peak,27.9881,86.9250,8849,10,Himalaya
+K2,peak,35.8825,76.5133,8611,9,Karakoram
+Kangchenjunga,peak,27.7025,88.1475,8586,9,Himalaya
+Lhotse,peak,27.9617,86.9333,8516,8,Himalaya
+Makalu,peak,27.8897,87.0889,8485,8,Himalaya
+Cho Oyu,peak,28.0942,86.6608,8188,8,Himalaya
+Dhaulagiri I,peak,28.6967,83.4875,8167,8,Himalaya
+Manaslu,peak,28.5497,84.5597,8163,8,Himalaya
+Nanga Parbat,peak,35.2375,74.5892,8126,8,Himalaya
+Annapurna I,peak,28.5961,83.8203,8091,8,Himalaya
+Gasherbrum I,peak,35.7244,76.6964,8080,7,Karakoram
+Broad Peak,peak,35.8106,76.5681,8051,7,Karakoram
+Gasherbrum II,peak,35.7575,76.6531,8035,7,Karakoram
+Shishapangma,peak,28.3525,85.7797,8027,7,Himalaya
+Gyachung Kang,peak,28.0981,86.7425,7952,5,Himalaya
+Nanda Devi,peak,30.3755,79.9708,7816,7,Himalaya
+Rakaposhi,peak,36.1425,74.4892,7788,6,Karakoram
+Namcha Barwa,peak,29.6306,95.0550,7782,6,Himalaya
+Kamet,peak,30.9200,79.5917,7756,6,Himalaya
+Tirich Mir,peak,36.2553,71.8417,7708,6,Hindu Kush
+Kongur Tagh,peak,38.5939,75.3125,7649,6,Pamir
+Gangkhar Puensum,peak,28.0472,90.4556,7570,6,Himalaya
+Minya Konka,peak,29.5950,101.8792,7556,6,Daxue Shan
+Kula Kangri,peak,28.2264,90.6153,7538,5,Himalaya
+Muztagh Ata,peak,38.2758,75.1158,7509,6,Pamir
+Ismoil Somoni Peak,peak,38.9417,72.0156,7495,6,Pamir
+Jengish Chokusu,peak,42.0350,80.1250,7439,6,Tian Shan
+Jomolhari,peak,27.8264,89.2717,7326,6,Himalaya
+Langtang Lirung,peak,28.2558,85.5192,7227,5,Himalaya
+Gauri Shankar,peak,27.9533,86.3361,7134,5,Himalaya
+Khan Tengri,peak,42.2111,80.1747,7010,6,Tian Shan
+Machapuchare,peak,28.4950,83.9494,6993,6,Himalaya
+Aconcagua,peak,-32.6532,-70.0109,6961,9,Andes
+Ojos del Salado,volcano,-27.1092,-68.5414,6893,7,Andes
+Ama Dablam,peak,27.8617,86.8614,6812,6,Himalaya
+Huascarán,peak,-9.1219,-77.6044,6768,7,Andes
+Mount Kailash,peak,31.0667,81.3125,6638,7,Transhimalaya
+Illimani,peak,-16.6333,-67.7833,6438,6,Andes
+Chimborazo,volcano,-1.4692,-78.8169,6263,7,Andes
+Denali,peak,63.0692,-151.0070,6190,9,Alaska Range
+Mount Logan,peak,60.5672,-140.4053,5959,7,Saint Elias
+Licancabur,volcano,-22.8333,-67.8833,5916,5,Andes
+Cotopaxi,volcano,-0.6838,-78.4375,5897,7,Andes
+Kilimanjaro,volcano,-3.0674,37.3556,5895,10,East Africa
+Mount Elbrus,peak,43.3499,42.4453,5642,8,Caucasus
+Pico de Orizaba,volcano,19.0303,-97.2681,5636,7,Trans-Mexican
+Damavand,volcano,35.9514,52.1092,5610,8,Alborz
+Mount Saint Elias,peak,60.2944,-140.9306,5489,6,Saint Elias
+Popocatépetl,volcano,19.0225,-98.6278,5426,7,Trans-Mexican
+Mount Kenya,peak,-0.1521,37.3084,5199,7,East Africa
+Mount Ararat,volcano,39.7019,44.2983,5137,8,Armenian Highlands
+Mount Stanley,peak,0.3856,29.8719,5109,5,Rwenzori
+Mount Kazbek,volcano,42.6969,44.5181,5054,6,Caucasus
+Vinson Massif,peak,-78.5254,-85.6171,4892,6,Antarctica
+Puncak Jaya,peak,-4.0833,137.1833,4884,6,Sudirman
+Mont Blanc,peak,45.8326,6.8652,4808,10,Alps
+Klyuchevskaya Sopka,volcano,56.0567,160.6383,4754,6,Kamchatka
+Monte Rosa,peak,45.9369,7.8668,4634,7,Alps
+Ras Dashen,peak,13.2369,38.3722,4550,5,Ethiopian Highlands
+Dom,peak,46.0942,7.8586,4545,5,Alps
+Mount Wilhelm,peak,-5.7997,145.0310,4509,5,Bismarck Range
+Belukha,peak,49.8072,86.5897,4506,5,Altai
+Weisshorn,peak,46.1014,7.7161,4506,5,Alps
+Matterhorn,peak,45.9763,7.6586,4478,10,Alps
+Mount Whitney,peak,36.5785,-118.2923,4421,6,Sierra Nevada
+Mount Elbert,peak,39.1178,-106.4454,4401,5,Rocky Mountains
+Mount Rainier,volcano,46.8523,-121.7603,4392,9,Cascades
+Longs Peak,peak,40.2549,-105.6160,4346,5,Rocky Mountains
+Mount Shasta,volcano,41.4092,-122.1949,4322,7,Cascades
+Pikes Peak,peak,38.8409,-105.0423,4302,6,Rocky Mountains
+Mauna Kea,volcano,19.8207,-155.4681,4207,7,Hawaii
+Grand Teton,peak,43.7410,-110.8024,4199,6,Rocky Mountains
+Mauna Loa,volcano,19.4756,-155.6054,4169,6,Hawaii
+Toubkal,peak,31.0597,-7.9158,4167,6,Atlas
+Jungfrau,peak,46.5367,7.9625,4158,7,Alps
+Barre des Écrins,peak,44.9222,6.3600,4102,5,Alps
+Mount Kinabalu,peak,6.0750,116.5583,4095,6,Borneo
+Gran Paradiso,peak,45.5181,7.2667,4061,5,Alps
+Piz Bernina,peak,46.3825,9.9081,4049,5,Alps
+Mount Cameroon,volcano,4.2167,9.1708,4040,5,Cameroon
+Eiger,peak,46.5776,8.0053,3967,7,Alps
+Mount Robson,peak,53.1105,-119.1566,3954,6,Canadian Rockies
+Yushan,peak,23.4700,120.9572,3952,6,Taiwan
+Erciyes,volcano,38.5322,35.4467,3917,5,Anatolia
+Ortler,peak,46.5089,10.5442,3905,5,Alps
+Grossglockner,peak,47.0745,12.6939,3798,7,Alps
+Mount Erebus,volcano,-77.5300,167.1667,3794,6,Antarctica
+Mount Fuji,volcano,35.3606,138.7274,3776,10,Japan
+Mount Adams,volcano,46.2024,-121.4909,3743,5,Cascades
+Aoraki / Mount Cook,peak,-43.5950,170.1418,3724,8,Southern Alps
+Rinjani,volcano,-8.4111,116.4572,3726,6,Lombok
+Teide,volcano,28.2724,-16.6425,3715,8,Canary Islands
+Gunnbjørn Fjeld,peak,68.9192,-29.8992,3694,5,Greenland
+Semeru,volcano,-8.1077,112.9224,3676,6,Java
+Mulhacén,peak,37.0533,-3.3114,3479,5,Sierra Nevada (Spain)
+Monte Fitz Roy,peak,-49.2714,-73.0431,3405,7,Patagonia
+Aneto,peak,42.6311,0.6578,3404,5,Pyrenees
+Mount Etna,volcano,37.7510,14.9934,3357,9,Sicily
+Mount Baker,volcano,48.7768,-121.8145,3286,5,Cascades
+Mount Hood,volcano,45.3736,-121.6959,3429,7,Cascades
+Mount Jefferson,volcano,44.6743,-121.7997,3199,4,Cascades
+Lassen Peak,volcano,40.4882,-121.5050,3189,4,Cascades
+Fansipan,peak,22.3033,103.7750,3147,6,Hoàng Liên Sơn
+Zugspitze,peak,47.4211,10.9853,2962,6,Alps
+Musala,peak,42.1797,23.5853,2925,4,Rila
+Mount Olympus,peak,40.0859,22.3583,2918,7,Greece
+Triglav,peak,46.3783,13.8367,2864,5,Julian Alps
+Ruapehu,volcano,-39.2817,175.5636,2797,6,New Zealand
+Paektu Mountain,volcano,41.9933,128.0775,2744,6,Korea
+Gerlachovský štít,peak,49.1640,20.1340,2655,4,Tatras
+Osorno,volcano,-41.1000,-72.4933,2652,6,Andes
+Mount St. Helens,volcano,46.1912,-122.1944,2549,7,Cascades
+Taranaki,volcano,-39.2964,174.0636,2518,6,New Zealand
+Galdhøpiggen,peak,61.6364,8.3125,2469,5,Scandinavia
+Mayon,volcano,13.2572,123.6856,2463,6,Philippines
+Pico (Azores),volcano,38.4686,-28.3994,2351,6,Azores
+Bromo,volcano,-7.9425,112.9530,2329,6,Java
+Mount Kosciuszko,peak,-36.4558,148.2636,2228,5,Snowy Mountains
+Hvannadalshnúkur,peak,64.0144,-16.6750,2110,5,Iceland
+Kebnekaise,peak,67.9000,18.5167,2097,4,Scandinavia
+Hallasan,volcano,33.3617,126.5292,1947,5,Jeju
+Eyjafjallajökull,volcano,63.6314,-19.6083,1651,5,Iceland
+Hekla,volcano,63.9833,-19.6667,1491,5,Iceland
+Pinatubo,volcano,15.1429,120.3496,1486,5,Philippines
+Ben Nevis,peak,56.7969,-5.0036,1345,5,Scotland
+Vesuvius,volcano,40.8214,14.4262,1281,8,Italy
+Table Mountain,peak,-33.9628,18.4098,1085,7,South Africa
+Snowdon,peak,53.0685,-4.0763,1085,5,Wales
+Stromboli,volcano,38.7939,15.2131,924,6,Italy

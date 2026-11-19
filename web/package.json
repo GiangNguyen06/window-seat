@@ -1,0 +1,22 @@
+{
+  "name": "window-seat-viewer",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/copy-data.mjs && vite",
+    "build": "node scripts/copy-data.mjs && tsc --noEmit && vite build",
+    "parity": "tsx scripts/parity.ts",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "leaflet": "^1.9.4"
+  },
+  "devDependencies": {
+    "@types/leaflet": "^1.9.12",
+    "cesium": "^1.147.0",
+    "tsx": "^4.23.15",
+    "typescript": "^5.6.0",
+    "vite": "^6.0.0"
+  }
+}
