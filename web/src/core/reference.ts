@@ -46,7 +46,7 @@ export async function parseCallsign(callsign?: string | null): Promise<[Airline 
   return [al, `${al.iata}${m[2].replace(/^0+/, "") || "0"}`];
 }
 
-/** FR24 downloads are named like 'VN82_426a5696' → [flight number, FR24 flight id]. */
+/** FR24 downloads are named like 'KL1605_3a1b2c3d' → [flight number, FR24 flight id]. */
 export function parseFr24Filename(stem: string): [string | null, string | null] {
   const m = /^([A-Z0-9]{2}\d{1,4}[A-Z]?)_([0-9a-f]{6,10})/i.exec(stem);
   return m ? [m[1].toUpperCase(), m[2].toLowerCase()] : [null, null];

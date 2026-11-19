@@ -1,7 +1,7 @@
 # Put your flight files here
 
 1. Go to flightradar24.com and log in.
-2. Search for your flight number (for example VN82) and open its history page.
+2. Search for your flight number (for example KL1605) and open its history page.
 3. Next to the flight you took, click **KML** (recommended) or **CSV**. This needs a paid plan.
 4. Save the file into this `flights` folder.
 5. Double-click `start.bat` (Windows) or run `./start.sh` (Mac/Linux). Your file will appear in the menu.
