@@ -9,7 +9,8 @@ import { cast } from "./raycast";
 import { lightCondition, solarPosition } from "./sun";
 import { FlatTerrain, type Terrain } from "./terrain";
 import { airborne, estimateAttitude, type Flight, resample } from "./track";
-import type { Result, Side } from "../types";
+import { cloudsAt, headingWithWind, nearestSeries, obscuredFraction, type WeatherSeries, windAt } from "./weather";
+import type { Result, SightingTuple, Side } from "../types";
 
 export const VERSION = "0.2.0";
 const SIDES: Side[] = ["left", "right"];
@@ -24,6 +25,11 @@ export interface Options {
   eyeDistanceM: number | null;
 }
 
+export interface WeatherInput {
+  route: WeatherSeries[]; // points along the route
+  landmarks: Map<string, WeatherSeries>; // at the landmarks themselves (optional, more accurate)
+}
+
 export const DEFAULT_OPTIONS: Options = {
   stepS: 30, visibilityKm: 150, refractionK: geo.DEFAULT_REFRACTION_K, raysPerEdge: 6,
   minCityPopulation: 300_000, aoaDeg: 2.5, eyeDistanceM: null,
@@ -34,6 +40,7 @@ const r = (x: number, n = 0) => { const f = 10 ** n; return Math.round(x * f) / 
 export async function analyze(
   flight: Flight, seatSpec: string | null, aircraftType: string | null, terrain: Terrain | null,
   options: Partial<Options> = {}, progress?: (i: number, n: number) => void,
+  weather: WeatherInput | null = null,
 ): Promise<Result> {
   const opts = { ...DEFAULT_OPTIONS, ...options };
   const ter = terrain ?? new FlatTerrain();
@@ -45,19 +52,33 @@ export async function analyze(
     ? { left: seat, right: mirrorSeat(seat) } : { right: seat, left: mirrorSeat(seat) };
 
   const fl = estimateAttitude(resample(airborne(flight), opts.stepS), opts.aoaDeg);
+  const hasWx = !!weather && weather.route.length > 0;
+  // Wind correction: the nose points into the wind (crab angle), so the windows face slightly differently
+  const wx = fl.points.map((p) => {
+    if (!hasWx) return null;
+    const ws = nearestSeries(weather!.route, p.lat, p.lon)!;
+    const [wSpeed, wFrom] = windAt(ws, p.t, p.altM);
+    let crab = 0;
+    if (p.altM > 1_500 && (p.gsMs ?? 0) > 60) {
+      crab = headingWithWind(p.trackDeg ?? 0, p.gsMs ?? 0, wSpeed, wFrom) - (p.trackDeg ?? 0);
+      p.headingDeg = (((p.headingDeg ?? 0) + crab) % 360 + 360) % 360;
+    }
+    return { clouds: cloudsAt(ws, p.t), wSpeed, wFrom, crab };
+  });
   const landmarks: Landmark[] = await loadBuiltin(opts.minCityPopulation);
   const lmById = new Map(landmarks.map((l) => [l.id, l]));
   const maxRange = opts.visibilityKm * 1000;
   const k = opts.refractionK;
 
   type Rec = { id: string; side: Side; first_t: number; last_t: number; min_dist_km: number; closest_t: number;
-    samples: number; light: Record<string, number>; first_lit_t: number | null };
+    samples: number; light: Record<string, number>; first_lit_t: number | null; wsum: number; cloudy: number };
   const seen = new Map<string, Rec>();
   const totals = { left: { day: 0, win: 0, side: 0 }, right: { day: 0, win: 0, side: 0 } };
   const samples: Result["samples"] = [];
 
   fl.points.forEach((p, i) => {
     progress?.(i, fl.points.length);
+    const w = wx[i];
     const dcm = dcmBodyToNed(p.headingDeg ?? 0, p.pitchDeg ?? 0, p.bankDeg ?? 0);
     const [sunAz, sunEl] = solarPosition(p.t, p.lat, p.lon);
     const dip = geo.horizonDipDeg(p.altM, k);
@@ -70,6 +91,13 @@ export async function analyze(
       horizon_km: r(geo.horizonDistance(p.altM, k) / 1000, 1),
       sides: {} as Result["samples"][number]["sides"],
     };
+    if (w) {
+      sample.weather = {
+        low: r(w.clouds.low, 2), mid: r(w.clouds.mid, 2), high: r(w.clouds.high, 2),
+        below: r(obscuredFraction(w.clouds, p.altM, 0), 2),
+        wind_ms: r(w.wSpeed, 1), wind_from: r(w.wFrom), crab: r(w.crab, 1),
+      };
+    }
     for (const side of SIDES) {
       const st = seats[side];
       const [vLo, vHi] = windowVRange(st);
@@ -88,20 +116,30 @@ export async function analyze(
       const sunInWindow = sunVisible && Math.abs(hSun) <= st.hHalfFovDeg + 5 && vLo - 5 <= vSun && vSun <= vHi + 5;
       const sights = visibleFromWindow(landmarks, p.lat, p.lon, p.altM, dcm, side, st.hHalfFovDeg, vLo, vHi, maxRange, ter, k, p.t)
         .sort((a, b) => b.landmark.weight - a.landmark.weight);
-      for (const s of sights) {
+      // Chance a cloud layer sits between you and the landmark (weather at the landmark if we have it)
+      const hidden = sights.map((s) => {
+        if (!hasWx) return null;
+        const ws = weather!.landmarks.get(s.landmark.id) ?? nearestSeries(weather!.route, s.landmark.lat, s.landmark.lon)!;
+        return obscuredFraction(cloudsAt(ws, p.t), p.altM, s.landmark.elevationM);
+      });
+      sights.forEach((s, si) => {
         const key = `${side}:${s.landmark.id}`;
         let rec = seen.get(key);
         if (!rec) {
           rec = { id: s.landmark.id, side, first_t: p.t, last_t: p.t, min_dist_km: s.distanceM / 1000, closest_t: p.t,
-            samples: 0, light: {}, first_lit_t: null };
+            samples: 0, light: {}, first_lit_t: null, wsum: 0, cloudy: 0 };
           seen.set(key, rec);
         }
+        const isLit = s.light === "sunlit" || s.light === "alpenglow" || s.light === "day";
+        const ph = hidden[si] ?? 0;
+        rec.wsum += (isLit ? 1 : s.landmark.kind === "city" ? 0.5 : 0.15) * (1 - ph);
+        if (ph > 0.6) rec.cloudy++;
         rec.last_t = p.t;
         if (s.distanceM / 1000 < rec.min_dist_km) { rec.min_dist_km = s.distanceM / 1000; rec.closest_t = p.t; }
         rec.samples++;
         rec.light[s.light] = (rec.light[s.light] ?? 0) + 1;
         if ((s.light === "sunlit" || s.light === "alpenglow") && rec.first_lit_t === null) rec.first_lit_t = p.t;
-      }
+      });
       if (sunVisible && sunEl > -6) totals[side].day += opts.stepS;
       if (sunInWindow) totals[side].win += opts.stepS;
       if (sunLateral > 0 && sunVisible) totals[side].side += opts.stepS;
@@ -113,8 +151,9 @@ export async function analyze(
         sun_in_window: sunInWindow,
         sun_on_this_side: sunLateral > 0 && sunVisible,
         landmarks: sights.map((s) => s.landmark.id),
-        sightings: Object.fromEntries(sights.map((s) => [s.landmark.id,
-          [r(s.distanceM / 1000, 1), r(s.azimuthDeg, 1), r(s.elevationDeg, 2), r(s.hOffDeg, 1), r(s.vOffDeg, 1), s.light]])),
+        sightings: Object.fromEntries(sights.map((s, si) => [s.landmark.id,
+          [r(s.distanceM / 1000, 1), r(s.azimuthDeg, 1), r(s.elevationDeg, 2), r(s.hOffDeg, 1), r(s.vOffDeg, 1), s.light,
+            ...(hidden[si] === null ? [] : [r(hidden[si]!, 2)])] as SightingTuple])),
       };
     }
     samples.push(sample);
@@ -131,11 +170,9 @@ export async function analyze(
   for (const side of SIDES) {
     const recs = [...seen.values()].filter((x) => x.side === side).map((x) => {
       const lm = lmById.get(x.id)!;
-      const lit = (x.light.sunlit ?? 0) + (x.light.alpenglow ?? 0) + (x.light.day ?? 0);
-      const dim = x.samples - lit;
-      const dark = lm.kind === "city" ? 0.5 : 0.15;
-      return { ...x, duration_s: x.samples * opts.stepS, name: lm.name, kind: lm.kind, min_dist_km: r(x.min_dist_km, 1),
-        score: r(lm.weight * Math.sqrt(lit + dark * dim), 2) };
+      const { wsum, ...rest } = x;
+      return { ...rest, duration_s: x.samples * opts.stepS, name: lm.name, kind: lm.kind, min_dist_km: r(x.min_dist_km, 1),
+        score: r(lm.weight * Math.sqrt(wsum), 2) };
     }).sort((a, b) => b.score - a.score);
     const st = seats[side];
     summary[side] = {
@@ -163,7 +200,8 @@ export async function analyze(
       source: flight.source, start_t: fl.points[0]?.t ?? 0, end_t: fl.points[fl.points.length - 1]?.t ?? 0,
     },
     seat: { requested: spec, label: seatLabel(seat), side: seat.side, simple },
-    options: { step_s: opts.stepS, visibility_km: opts.visibilityKm, refraction_k: k, terrain: ter.flat ? "FlatTerrain" : "TerrariumTerrain" },
+    options: { step_s: opts.stepS, visibility_km: opts.visibilityKm, refraction_k: k, terrain: ter.flat ? "FlatTerrain" : "TerrariumTerrain",
+      weather: hasWx ? "open-meteo" : null },
     track: flight.points.map((p) => [r(p.lon, 5), r(p.lat, 5), r(p.altM)] as [number, number, number]),
     samples,
     landmarks: lmOut,

@@ -79,6 +79,37 @@ export function drawWindow(
   ctx.fillStyle = g;
   ctx.fill();
 
+  // cloud deck below: a white layer over the ground, as thick as the chance the ground is hidden
+  if (s.weather && s.weather.below > 0.05) {
+    const a = Math.min(0.92, s.weather.below);
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    for (const p of pts) ctx.lineTo(p[0], p[1]);
+    ctx.lineTo(W + 50, H + 50);
+    ctx.lineTo(-50, H + 50);
+    ctx.closePath();
+    ctx.clip();
+    // clouds are lit by the sun at the aircraft's level: white by day, pink-grey at dawn/dusk, dark at night
+    // at night: a faint moonlit grey, a little brighter than the dark ground so the deck stays readable
+    const top = night ? "rgba(118,128,156," : s.sun.el > 2 ? "rgba(245,247,252," : "rgba(196,176,190,";
+    const cg = ctx.createLinearGradient(0, Math.max(0, Math.min(H, yMid)), 0, H);
+    cg.addColorStop(0, `${top}${a})`);
+    cg.addColorStop(1, `${top}${a * 0.8})`);
+    ctx.fillStyle = cg;
+    ctx.fillRect(0, 0, W, H);
+    // a few soft cloud puffs for texture
+    ctx.globalAlpha = a * 0.35;
+    for (let i = 0; i < 18; i++) {
+      const x = ((i * 97 + Math.round(s.t / 60) * 13) % (W + 60)) - 30;
+      const y = yMid + 6 + ((i * 53) % Math.max(10, H - yMid));
+      const rr = 6 + ((i * 31) % 18) * (y - yMid) / H * 2;
+      ctx.fillStyle = night ? "#a7b0c8" : s.sun.el > 2 ? "#ffffff" : "#e6cfd8";
+      ctx.beginPath(); ctx.ellipse(x, y, rr * 2.2, rr, 0, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+  }
+
   // haze band along the horizon
   ctx.strokeStyle = night ? "rgba(120,140,200,0.25)" : "rgba(255,255,255,0.35)";
   ctx.lineWidth = 6;
@@ -124,6 +155,8 @@ export function drawWindow(
     const t = sights[id];
     if (!lm || !t) continue;
     const x = toX(t[3]), y = toY(t[4]);
+    const inCloud = (t[6] ?? 0) > 0.6;
+    ctx.globalAlpha = inCloud ? 0.35 : 1;
     if (lm.kind === "city") {
       ctx.fillStyle = night ? "rgba(255,210,120,0.95)" : "rgba(255,255,255,0.9)";
       ctx.beginPath(); ctx.arc(x, y, night ? 4 : 2.5, 0, Math.PI * 2); ctx.fill();
@@ -137,7 +170,8 @@ export function drawWindow(
       ctx.strokeStyle = "rgba(160,220,255,0.95)"; ctx.lineWidth = 2;
       ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI * 2); ctx.stroke();
     }
-    const tag = t[5] === "alpenglow" ? " · first light" : t[5] === "twilight" && lm.kind !== "city" ? " · dim" : "";
+    ctx.globalAlpha = 1;
+    const tag = inCloud ? " · in cloud" : t[5] === "alpenglow" ? " · first light" : t[5] === "twilight" && lm.kind !== "city" ? " · dim" : "";
     labels.push({ x, y, text: `${lm.name} · ${Math.round(t[0])} km${tag}` });
   }
   const placed: { x0: number; x1: number; y: number }[] = [];
@@ -164,6 +198,20 @@ export function drawWindow(
   ctx.lineWidth = 1.5;
   ctx.strokeStyle = "rgba(0,0,0,0.35)";
   ctx.beginPath(); ctx.roundRect(8, 8, W - 16, H - 16, r * 0.9); ctx.stroke();
+
+  // weather badge: the cloud cover below, readable day or night
+  if (s.weather) {
+    const pct = Math.round(s.weather.below * 100);
+    const text = pct >= 10 ? `☁ ${pct}% cloud below` : "clear below";
+    ctx.font = "600 11px Inter, system-ui, sans-serif";
+    const tw = ctx.measureText(text).width + 14;
+    const bx = W / 2 - tw / 2, by = H - 64;
+    ctx.fillStyle = "rgba(8,12,26,0.62)";
+    ctx.beginPath(); ctx.roundRect(bx, by, tw, 18, 9); ctx.fill();
+    ctx.fillStyle = pct >= 60 ? "#ffffff" : "#d6e2f5";
+    ctx.textAlign = "center";
+    ctx.fillText(text, W / 2, by + 13);
+  }
 
   // nose arrow
   ctx.fillStyle = "rgba(255,255,255,0.7)";

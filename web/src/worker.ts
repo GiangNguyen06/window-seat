@@ -1,10 +1,12 @@
 // Runs the analysis off the main thread so the page stays responsive.
 
-import { analyze, type Options } from "./core/analysis";
+import { analyze, type Options, type WeatherInput } from "./core/analysis";
 import { setDataLoader } from "./core/data";
 import { demoFlight } from "./core/demo";
 import { readFlightFile } from "./core/sources";
 import { TerrariumTerrain, type Terrain } from "./core/terrain";
+import { airborne } from "./core/track";
+import { fetchSeries, routeSamples } from "./core/weather";
 
 export interface AnalyzeRequest {
   id: number;
@@ -14,6 +16,7 @@ export interface AnalyzeRequest {
   seat: string | null;
   aircraft: string | null;
   terrain: boolean;
+  weather: boolean;
   options: Partial<Options>;
 }
 
@@ -45,9 +48,33 @@ self.onmessage = async (e: MessageEvent<AnalyzeRequest>) => {
       if (ok === 0) notes.push("Couldn't download terrain data, so the calculation used a smooth earth.");
       else terrain = t;
     }
-    const result = await analyze(flight, req.seat, req.aircraft, terrain, req.options, (i, n) => {
+    const progress = (i: number, n: number) => {
       if (i % 25 === 0) post({ id: req.id, type: "progress", stage: "Calculating the view", done: i, total: n });
-    });
+    };
+
+    let weather: WeatherInput | null = null;
+    if (req.weather && !req.demo) {
+      try {
+        post({ id: req.id, type: "progress", stage: "Fetching weather along the route", done: 0, total: 1 });
+        const pts = airborne(flight).points;
+        const t0 = pts[0].t, t1 = pts[pts.length - 1].t;
+        const route = await fetchSeries(routeSamples(pts, 100_000), t0, t1);
+        weather = { route, landmarks: new Map() };
+        // First pass tells us which landmarks were in view; then fetch the weather at those places too
+        const first = await analyze(flight, req.seat, req.aircraft, terrain, req.options, progress, weather);
+        const ids = Object.keys(first.landmarks);
+        if (ids.length) {
+          post({ id: req.id, type: "progress", stage: "Fetching weather at the landmarks", done: 0, total: 1 });
+          const locs = ids.map((id) => first.landmarks[id]);
+          const series = await fetchSeries(locs, t0, t1);
+          ids.forEach((id, i) => weather!.landmarks.set(id, series[i]));
+        }
+      } catch (err) {
+        notes.push(`Couldn't load weather data (${err instanceof Error ? err.message : err}), so clouds and wind are not included.`);
+        weather = null;
+      }
+    }
+    const result = await analyze(flight, req.seat, req.aircraft, terrain, req.options, progress, weather);
     post({ id: req.id, type: "result", result, notes });
   } catch (err) {
     post({ id: req.id, type: "error", message: err instanceof Error ? err.message : String(err) });

@@ -140,4 +140,6 @@ def run() -> None:
     print()
     print("\n".join("  " + line for line in text_report(result).splitlines()))
     print(f"\n  Saved {out}")
-    serve(out)
+    flight_file = choice if isinstance(choice, Path) else None
+    serve(out, flight_file=flight_file, seat=seat or None, aircraft=aircraft if not flight.aircraft_type else None,
+          demo=choice == "demo")

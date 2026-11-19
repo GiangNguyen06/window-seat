@@ -39,6 +39,9 @@ Everything is calculated in your browser, and your files never leave your comput
 - **Simple** (default): compares the left and right windows.
 - **My seat**: pick the aircraft (filled in from a KML), your row and seat letter on a small cabin map,
   how close you lean to the window, haze, and optionally real terrain.
+- **Real weather** (on by default): clouds and wind for that day and route, from [Open-Meteo](https://open-meteo.com)
+  (free, no key). Cloud decks show up in the window views, landmarks hidden by cloud are marked, and the
+  wind at cruise height corrects the direction the nose (and so your window) was pointing.
 - Your flights are saved in your browser and are listed on the start screen next time.
 
 To run it on your own computer:
@@ -163,9 +166,8 @@ tests/           pytest suite
 - [x] 2D map: footprints, landmarks, sun side, seat recommendation
 - [x] Schematic window view (horizon line, sun, landmarks at their true angles)
 - [x] 3D window view with CesiumJS terrain, imagery, atmosphere and sun lighting
-- [ ] Crab angle from wind-at-altitude data
 - [x] Clean-air visibility model for high peaks + alpenglow (summit lighting)
-- [ ] Clouds and visibility from weather data
+- [x] Clouds and crab angle from real weather (website)
 - [ ] Per-airline seat maps
 - [ ] "Plan my seat" mode: pick the best side before you book, from a scheduled route
 
@@ -173,6 +175,7 @@ tests/           pytest suite
 
 - City data © [GeoNames](https://www.geonames.org/) (CC BY 4.0), via `geonamescache`
 - Airports: [airportsdata](https://github.com/mborsetti/airportsdata) (MIT)
+- Weather: [Open-Meteo](https://open-meteo.com) historical forecast API (CC BY 4.0)
 - Elevation: [AWS Terrain Tiles](https://registry.opendata.aws/terrain-tiles/) (SRTM, GMTED, ETOPO1 and others)
 - Flight data: [Flightradar24](https://www.flightradar24.com) and [The OpenSky Network](https://opensky-network.org). Respect each provider's terms of use. This project doesn't scrape any website.
 - Map tiles: Esri World Imagery, CARTO, OpenTopoMap

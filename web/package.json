@@ -7,7 +7,8 @@
     "dev": "node scripts/copy-data.mjs && vite",
     "build": "node scripts/copy-data.mjs && tsc --noEmit && vite build",
     "parity": "tsx scripts/parity.ts",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "tsx scripts/test-weather.ts"
   },
   "dependencies": {
     "leaflet": "^1.9.4"

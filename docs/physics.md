@@ -156,7 +156,35 @@ For each side we record:
 * minutes with the sun on that side, from the sign of its body-frame y-component
 * minutes with the sun inside the window aperture, meaning glare
 
-## 9. The 3D window camera
+## 9. Weather: clouds and wind (website)
+
+Hourly weather for the flight comes from the Open-Meteo historical forecast API. It is
+fetched for points every ~100 km along the route, and for every landmark that was in view.
+
+**Clouds.** Open-Meteo reports cover for three layers: low (0–2 km), mid (2–6 km) and
+high (above 6 km). A layer counts when it lies *between* you and what you look at: below the
+aircraft and above the target. Layers combine as independent random overlaps:
+
+```
+P(hidden) = 1 − Π (1 − opacityᵢ · coverᵢ)     opacity: low 1.0, mid 0.9, high (thin cirrus) 0.4
+```
+
+So a 99 % low deck hides the cities in the valleys, but not an 8,849 m summit standing above it.
+Sightings that are probably hidden (P > 0.6) are marked, and they count less towards the
+"best side" score.
+
+**Wind → crab angle.** A crosswind makes the aircraft fly slightly sideways. The nose points
+into the wind while the ground track stays straight. With the wind interpolated (as a vector)
+between pressure levels at flight altitude:
+
+```
+air velocity = ground velocity − wind velocity      heading ψ = atan2(v_air,E, v_air,N)
+```
+
+The window direction follows the nose, not the track, so this shifts what each window faces
+by a few degrees. In a jet stream it can reach 5–10°.
+
+## 10. The 3D window camera
 
 The web viewer's 3D mode reuses the same rotation. The camera direction is the
 window ray d_body, and the camera "up" is the cabin ceiling direction (−z_body)
@@ -166,13 +194,12 @@ east-north-up frame at the aircraft position. The vertical field of view is
 2·atan(h / 2d), so leaning closer (smaller d) widens the view, exactly as in
 the cabin.
 
-## 10. Known simplifications / ideas for contributors
+## 11. Known simplifications / ideas for contributors
 
-* Crab angle: a crosswind makes the nose point a few degrees off the track.
-  This could be estimated from wind data (e.g. GFS winds at flight level).
+* Weather (clouds, crab angle) is in the website only. The Python version doesn't fetch it yet.
 * Atmospheric visibility is one fixed number. A Koschmieder-style extinction
   model (V = 3.912/β) driven by weather data would be more realistic.
-* Clouds are not modelled. Satellite cloud masks could be added.
+* Clouds are layer fractions from a weather model (~9–25 km grid), not individual clouds.
 * Window positions don't line up exactly with seat rows. Per-aircraft seat maps
   would refine the wing-blocking model.
 * 3D view: CesiumJS renders terrain and lighting, but it doesn't model the

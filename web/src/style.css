@@ -238,3 +238,12 @@ button.file-btn { color: var(--text); font: inherit; font-size: 13px; }
   position: absolute; right: -6px; top: -10px; background: none; border: 0; color: var(--muted); font-size: 28px; cursor: pointer;
 }
 .error-box { background: #3a1820; border: 1px solid #7a3040; color: #ffc9d1; border-radius: 10px; padding: 10px 12px; font-size: 13px; }
+.now-list li.cloudy > span:first-child { opacity: .55; }
+
+.toast {
+  position: fixed; left: 50%; bottom: 84px; transform: translate(-50%, 20px); max-width: min(560px, 90vw);
+  background: rgba(17, 24, 49, .96); border: 1px solid var(--line); color: var(--text); border-radius: 10px;
+  padding: 10px 14px; font-size: 13px; line-height: 1.45; z-index: 6000; opacity: 0; pointer-events: none;
+  transition: opacity .25s, transform .25s; box-shadow: 0 8px 30px rgba(0,0,0,.35);
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }

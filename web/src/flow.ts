@@ -10,13 +10,17 @@ type Source = { kind: "demo" } | { kind: "file"; id: string; fileName: string; t
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 
-const DEFAULTS: SavedSettings = { mode: "simple", aircraft: "", row: 20, letter: "", eyeCm: null, visibilityKm: 150, terrain: false };
+const DEFAULTS: SavedSettings = { mode: "simple", aircraft: "", row: 20, letter: "", eyeCm: null, visibilityKm: 150, terrain: false, weather: true };
 
 let source: Source | null = null;
 let settings: SavedSettings = { ...DEFAULTS };
 let fileAircraft: { type?: string; model?: string } = {};
 let setData: (d: Result) => void = () => {};
 let hasData = false;
+let ranOnce = false;
+
+/** True once the in-browser calculation has produced a result (it then wins over a pre-made one). */
+export const flowHasResult = () => ranOnce;
 
 const worker = new Worker(new URL("./worker.ts", import.meta.url), { type: "module" });
 let reqId = 0;
@@ -37,7 +41,10 @@ function seatSpec(s: SavedSettings): string | null {
 }
 
 async function run() {
-  if (!source) return;
+  if (!source) {
+    toast("This result was made by the Python version. To change settings or add weather, open the flight file with ＋ New flight.");
+    return;
+  }
   const req: AnalyzeRequest = {
     id: ++reqId,
     baseUrl: new URL(".", location.href).href,
@@ -46,6 +53,7 @@ async function run() {
     seat: seatSpec(settings),
     aircraft: settings.mode === "detailed" && settings.aircraft ? settings.aircraft : null,
     terrain: settings.terrain,
+    weather: settings.weather,
     options: { visibilityKm: settings.visibilityKm, eyeDistanceM: settings.mode === "detailed" && settings.eyeCm ? settings.eyeCm / 100 : null },
   };
   $("busy").hidden = false;
@@ -60,6 +68,7 @@ async function run() {
       model: result.flight.aircraft_model ?? fileAircraft.model };
     setData(result);
     hasData = true;
+    ranOnce = true;
     hideWelcome();
     if (notes.length) alertNote(notes.join(" "));
     if (source.kind === "file") {
@@ -79,9 +88,54 @@ async function run() {
 }
 
 function alertNote(text: string) {
-  const el = $("v3d-info");
-  el.textContent = text;
+  $("v3d-info").textContent = text;
+  toast(text);
   console.warn(text);
+}
+
+/** A short message at the bottom of the screen that fades away by itself. */
+function toast(text: string, ms = 9000) {
+  let el = document.getElementById("toast");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "toast";
+    el.className = "toast";
+    document.body.appendChild(el);
+  }
+  el.textContent = text;
+  el.classList.add("show");
+  clearTimeout((el as HTMLElement & { _t?: number })._t);
+  (el as HTMLElement & { _t?: number })._t = window.setTimeout(() => el!.classList.remove("show"), ms);
+}
+
+/** Opened by the local `windowseat` server: recalculate the given flight here (adds weather etc.). */
+async function startFromParams(params: URLSearchParams) {
+  const seat = params.get("seat")?.toUpperCase() ?? "";
+  const m = /^(\d{1,2})([A-Z])$/.exec(seat);
+  const ac = params.get("aircraft");
+  const base: SavedSettings = { ...DEFAULTS };
+  if (m) Object.assign(base, { mode: "detailed", row: Number(m[1]), letter: m[2] });
+  if (ac) base.aircraft = profileFor(ac).icaoTypes[0] ?? "";
+  if (params.get("demo")) {
+    source = { kind: "demo" };
+    settings = base;
+    return run();
+  }
+  const url = params.get("flight");
+  if (!url) return;
+  try {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(String(r.status));
+    const text = await r.text();
+    const fileName = decodeURIComponent(url.split("/").pop() ?? "flight");
+    const id = flightId(fileName, text);
+    const saved = await getFlight(id).catch(() => undefined);
+    source = { kind: "file", id, fileName, text };
+    settings = { ...base, ...(m || ac ? {} : saved?.settings ?? {}) };
+    await run();
+  } catch (e) {
+    toast(`Couldn't reload the flight file for weather (${e instanceof Error ? e.message : e}).`);
+  }
 }
 
 // ---------------------------------------------------------------- files
@@ -200,6 +254,7 @@ function renderSettings() {
   }
   $<HTMLSelectElement>("set-haze").value = String(settings.visibilityKm);
   $<HTMLInputElement>("set-terrain").checked = settings.terrain;
+  $<HTMLInputElement>("set-weather").checked = settings.weather;
 }
 
 export function initFlow(onData: (d: Result) => void, opts: { showWelcome: boolean }) {
@@ -227,6 +282,7 @@ export function initFlow(onData: (d: Result) => void, opts: { showWelcome: boole
   $("set-lean-v").addEventListener("click", () => { settings.eyeCm = null; renderSettings(); });
   $<HTMLSelectElement>("set-haze").addEventListener("change", (e) => { settings.visibilityKm = Number((e.target as HTMLSelectElement).value); });
   $<HTMLInputElement>("set-terrain").addEventListener("change", (e) => { settings.terrain = (e.target as HTMLInputElement).checked; });
+  $<HTMLInputElement>("set-weather").addEventListener("change", (e) => { settings.weather = (e.target as HTMLInputElement).checked; });
   $("set-apply").addEventListener("click", () => run());
 
   $("new-flight").addEventListener("click", () => showWelcome());
@@ -253,6 +309,10 @@ export function initFlow(onData: (d: Result) => void, opts: { showWelcome: boole
   });
 
   renderSettings();
-  if (opts.showWelcome) showWelcome();
+  const params = new URLSearchParams(location.search);
+  if (params.get("flight") || params.get("demo")) {
+    hideWelcome();
+    startFromParams(params);
+  } else if (opts.showWelcome) showWelcome();
   else { hideWelcome(); hasData = true; }
 }

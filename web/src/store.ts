@@ -8,6 +8,7 @@ export interface SavedSettings {
   eyeCm: number | null;
   visibilityKm: number;
   terrain: boolean;
+  weather: boolean;
 }
 
 export interface SavedFlight {

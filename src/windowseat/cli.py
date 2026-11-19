@@ -48,7 +48,9 @@ def _run(flight, args) -> None:
     if args.open:
         from .server import serve
 
-        serve(args.out)
+        is_file = getattr(args, "file", None)
+        serve(args.out, flight_file=is_file, seat=args.seat if args.seat not in ("left", "right") else None,
+              aircraft=args.aircraft, demo=args.cmd == "demo")
     else:
         print("Tip: add --open to view it in your browser, or run `windowseat view " + args.out + "`.")
 

@@ -4,7 +4,7 @@ import "./style.css";
 import type { Result, Sample, Side } from "./types";
 import { drawWindow } from "./windowView";
 import { WindowView3D, getToken, setToken } from "./view3d";
-import { initFlow } from "./flow";
+import { flowHasResult, initFlow } from "./flow";
 
 const SIDES: Side[] = ["left", "right"];
 const COLORS: Record<Side, string> = { left: "#4fa3ff", right: "#ff9b42" };
@@ -57,7 +57,8 @@ const lookLine: Record<Side, L.Polyline | null> = { left: null, right: null };
 async function loadUrl(url: string) {
   const r = await fetch(url);
   if (!r.ok) throw new Error(`${url}: ${r.status}`);
-  setData(await r.json());
+  const d = await r.json();
+  if (!flowHasResult()) setData(d); // a recalculation with weather may already have arrived
 }
 
 function setData(d: Result) {
@@ -210,7 +211,20 @@ function renderStats(s: Sample) {
     stat("Horizon", `${Math.round(s.horizon_km)}<small> km</small>`) +
     stat("Heading", `${Math.round(s.heading)}°`) +
     stat("Bank / pitch", `${s.bank.toFixed(1)}° <small>/ ${s.pitch.toFixed(1)}°</small>`) +
-    stat("Sun", `${s.sun.el.toFixed(0)}° <small>${s.sun.light} · ${sunSide}</small>`);
+    stat("Sun", `${s.sun.el.toFixed(0)}° <small>${s.sun.light} · ${sunSide}</small>`) +
+    (s.weather
+      ? stat("Clouds below", `${Math.round(s.weather.below * 100)}%<small> ${cloudWords(s.weather)}</small>`) +
+        stat("Wind", `${Math.round(s.weather.wind_ms / 0.514444)}<small> kt from ${Math.round(s.weather.wind_from)}°</small>`) +
+        stat("Crab angle", `${s.weather.crab > 0 ? "+" : ""}${s.weather.crab.toFixed(1)}°<small> nose vs track</small>`)
+      : "");
+}
+
+function cloudWords(w: NonNullable<Sample["weather"]>): string {
+  const parts: string[] = [];
+  if (w.low > 0.2) parts.push(`low ${Math.round(w.low * 100)}%`);
+  if (w.mid > 0.2) parts.push(`mid ${Math.round(w.mid * 100)}%`);
+  if (w.high > 0.2) parts.push(`high ${Math.round(w.high * 100)}%`);
+  return parts.length ? parts.join(" · ") : "clear";
 }
 
 function renderNow(s: Sample) {
@@ -224,7 +238,8 @@ function renderNow(s: Sample) {
           const lm = data!.landmarks[id];
           const light = lm.kind === "city" ? "" : t[5] === "alpenglow" ? " · 🌄" : t[5] === "twilight" ? " · dim" : t[5] === "dark" ? " · dark" : "";
           const elev = lm.kind === "peak" || lm.kind === "volcano" ? `<small class="sub">${Math.round(lm.elevation_m).toLocaleString()} m</small>` : "";
-          return `<li><span>${lm.name}${elev}</span><span class="d">${Math.round(t[0])} km · ${dir}${light}</span></li>`;
+          const cloud = (t[6] ?? 0) > 0.6 ? " · ☁ likely in cloud" : (t[6] ?? 0) > 0.3 ? " · ☁ some cloud" : "";
+          return `<li class="${(t[6] ?? 0) > 0.6 ? "cloudy" : ""}"><span>${lm.name}${elev}</span><span class="d">${Math.round(t[0])} km · ${dir}${light}${cloud}</span></li>`;
         }).join("")
       : `<li class="empty">${s.sides[side].ground_fraction < 0.3 ? "mostly sky" : "open ground"}</li>`;
   }
@@ -254,7 +269,9 @@ function renderWhole() {
     ? list.map((r) => {
         const lit = r.kind === "city" || !r.light || r.first_lit_t === undefined ? ""
           : r.first_lit_t === null ? " · not sunlit" : r.first_lit_t > r.first_t ? ` · lit ${fmtTime(r.first_lit_t)}` : "";
-        return `<li data-t="${r.first_lit_t ?? r.first_t}">${r.name} <span class="meta">${r.kind} · ${fmtTime(r.first_t)} · ${Math.round(r.min_dist_km)} km${lit}</span></li>`;
+        const n = r.samples ?? 0;
+        const cloud = r.cloudy && n && r.cloudy / n > 0.5 ? " · ☁ mostly cloud" : r.cloudy ? " · ☁ partly cloud" : "";
+        return `<li data-t="${r.first_lit_t ?? r.first_t}">${r.name} <span class="meta">${r.kind} · ${fmtTime(r.first_t)} · ${Math.round(r.min_dist_km)} km${lit}${cloud}</span></li>`;
       }).join("")
     : `<li>No catalogued landmarks on this side.</li>`;
   $("whole-list").querySelectorAll<HTMLLIElement>("li[data-t]").forEach((li) =>
@@ -271,7 +288,10 @@ function drawProfile(d: Result) {
   const ticks = SIDES.map((side) => d.samples.map((s, i) => s.sides[side].landmarks.length
     ? `<rect x="${i}" y="${side === "left" ? 0 : 6}" width="1" height="5" fill="${COLORS[side]}" opacity=".8"/>` : "").join("")).join("");
   const night = d.samples.map((s, i) => s.sun.el < -6 ? `<rect x="${i}" y="0" width="1" height="100" fill="#000" opacity=".35"/>` : "").join("");
-  svg.innerHTML = `${night}<polygon points="0,100 ${pts} ${n - 1},100" fill="#7cf0c5" opacity=".12"/>
+  // cloud cover below the aircraft, as a soft white band along the bottom
+  const clouds = d.samples.map((s, i) => s.weather && s.weather.below > 0.05
+    ? `<rect x="${i}" y="${100 - 22 * s.weather.below}" width="1.05" height="${22 * s.weather.below}" fill="#e8eef8" opacity=".35"/>` : "").join("");
+  svg.innerHTML = `${night}${clouds}<polygon points="0,100 ${pts} ${n - 1},100" fill="#7cf0c5" opacity=".12"/>
     <polyline points="${pts}" fill="none" stroke="#7cf0c5" stroke-width="1.2" vector-effect="non-scaling-stroke" opacity=".7"/>${ticks}`;
 }
 
@@ -317,4 +337,4 @@ window.addEventListener("resize", () => render());
 // ?data=url.json opens a ready-made analysis (used by `windowseat view`); otherwise show the welcome screen
 const param = new URLSearchParams(location.search).get("data");
 initFlow(setData, { showWelcome: !param });
-if (param) loadUrl(param).catch((e) => console.error(e));
+if (param) loadUrl(param).catch((e) => console.error(e)); // shown at once; the flow may then recalculate with weather

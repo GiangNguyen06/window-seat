@@ -32,6 +32,7 @@ jobs:
           python-version: "3.12"
       - run: npm ci
       - run: npm run build
+      - run: npm test
       # The website's TypeScript physics must give the same answers as the Python reference
       - run: pip install -e .. && windowseat demo -o /tmp/py_demo.json
       - run: npm run parity -- /tmp/py_demo.json demo 20F
